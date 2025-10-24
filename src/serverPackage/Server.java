@@ -1,13 +1,16 @@
 package serverPackage;
 
-import java.io.DataInputStream;
-import java.io.DataOutputStream;
+import java.io.ObjectInputStream;
+import java.io.ObjectOutputStream;
 import java.io.IOException;
 import java.net.ServerSocket;
 import java.net.Socket;
 
+import operation.Operation;
+
 public class Server  {
     static int numero_client = 0;
+    private static int num_operation = 0; 
     
     public static void main(String[] args) {
         Server server = new Server();
@@ -29,27 +32,27 @@ public class Server  {
     }
         public static class Clienthandler implements Runnable {
             private Socket socket;
-            private int numero_client;  
+            private int numero_client;
+             
             public Clienthandler(Socket socket, int numero_client) {
                 this.numero_client = numero_client;  
                 this.socket = socket;
+                
             }
             
             @Override
             public void run() {
                 try {
-                    DataInputStream in = new DataInputStream(socket.getInputStream());
-                    DataOutputStream out = new DataOutputStream(socket.getOutputStream());
+                    ObjectInputStream in = new ObjectInputStream(socket.getInputStream());
+                    ObjectOutputStream out = new ObjectOutputStream(socket.getOutputStream());
                     while (true) {
-                        String operation = in.readUTF();
+                        Operation operation = (Operation) in.readObject();
                         int result = 0;
-                        //nettoyer l'operation
-                        operation = operation.replaceAll("\\s", "");
                         // Extraction de l'opérateur
-                        String operator = operation.replaceAll("\\d", "");
+                        String operator = operation.getOperator();
                         //extraaction de nombre 
-                        int nb1 = Integer.parseInt(operation.split("\\" + operator)[0]);
-                        int nb2 = Integer.parseInt(operation.split("\\" + operator)[1]);
+                        int nb1 = operation.getNb1();
+                        int nb2 = operation.getNb2();
                         //faire l'operation adaptée
                         switch (operator) {
                             case "+":
@@ -68,10 +71,14 @@ public class Server  {
                             default:
                                 break;
                         }
-                        out.writeInt(result);
+                        synchronized (Server.class) {
+                            num_operation++;
+                        }
+                        System.out.println("Nombre total d'opérations effectuées: " + num_operation);
+                        out.writeObject(result);
                         out.flush();
                     }
-                } catch (IOException e) {
+                } catch (ClassNotFoundException | IOException e) {
                     System.out.println("Le client numéro " + numero_client + " s'est déconnecté.");
                 }
                 
