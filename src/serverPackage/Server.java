@@ -10,8 +10,6 @@ import operation.Operation;
 
 public class Server  {
     static int numero_client = 0;
-    private static int num_operation = 0; 
-    
     public static void main(String[] args) {
         Server server = new Server();
         server.start();
@@ -21,9 +19,11 @@ public class Server  {
             System.out.println("Je suis un serveur en attente de la connexion d'un nouveau client...");
             while (true) {
                 Socket socket = serverSocket.accept();
-                numero_client++;
+                synchronized (serverSocket) {
+                    numero_client++;
+               
                 System.out.println("Un nouveau client est connecté sont numéro est: " + numero_client);
-                System.out.println("Adresse IP du client: " + socket.getInetAddress().getHostAddress());
+                System.out.println("Adresse IP du client: " + socket.getInetAddress().getHostAddress());}
                 new Thread(new Clienthandler(socket,numero_client)).start();
             }
         } catch (IOException e) {
@@ -71,10 +71,6 @@ public class Server  {
                             default:
                                 break;
                         }
-                        synchronized (Server.class) {
-                            num_operation++;
-                        }
-                        System.out.println("Nombre total d'opérations effectuées: " + num_operation);
                         out.writeObject(result);
                         out.flush();
                     }
